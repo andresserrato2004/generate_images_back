@@ -18,6 +18,7 @@ API backend para generar fotos de graduación automáticamente usando inteligenc
 - API Key de OpenAI
 - npm o yarn
 
+
 ## 🛠️ Instalación
 
 1. **Clonar el repositorio:**
