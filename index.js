@@ -22,6 +22,42 @@ app.use(express.json());
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+
+app.post('/api/ced', async(req, res) => {
+  try{
+    const { id } = req.body; // Obtener ID del body en lugar de params
+
+    const user = await prisma.user.findUnique({
+      where: { id: id } // Usar 'id' en lugar de 'cedula'
+    });
+
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        exists: false,
+        error: 'Usuario no encontrado con la cédula proporcionada' 
+      });
+    } else {
+      return res.status(200).json({
+        success: true,
+        exists: true,
+        message: 'Usuario encontrado',
+        user: {
+          id: user.id,
+          name: user.name,
+          gender: user.gender,
+          career: user.career
+        }
+      });
+    }
+
+  } catch(error){  
+    console.error('Error en /api/ced:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
 app.post('/api/upload', upload.single('image'), async (req, res) => {
   try {
     const { name, gender, career, cedula } = req.body;
