@@ -1,0 +1,26 @@
+node_modules
+/node_modules
+# Keep environment variables out of version control
+.env
+
+/generated/prisma
+
+generated
+
+/generated
+
+# Excel files
+*.xlsx
+*.xls
+*.csv
+
+# Script files
+loadData*
+fixmissingstudents*
+clearDatabase*
+
+clearDatabase*
+fixMissingStudents*
+loadData*
+
+Estudiantes Nuevos_2025_2*
