@@ -23,6 +23,117 @@ app.use(express.json());
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
+
+// ...existing code...
+
+// Endpoint para obtener todos los usuarios
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: {
+        createdAt: 'desc' // Ordenar por fecha de creación, más recientes primero
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users: users
+    });
+
+  } catch (error) {
+    console.error('Error en /api/users:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Endpoint alternativo sin imágenes (más rápido)
+app.get('/api/users/summary', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        gender: true,
+        career: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users: users
+    });
+
+  } catch (error) {
+    console.error('Error en /api/users/summary:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Endpoint con paginación (recomendado para muchos usuarios)
+app.get('/api/users/paginated', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const users = await prisma.user.findMany({
+      skip: skip,
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        gender: true,
+        career: true,
+        createdAt: true,
+        // image: false ← Sin imágenes para mejor rendimiento
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    const totalUsers = await prisma.user.count();
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.status(200).json({
+      success: true,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalUsers: totalUsers,
+        usersPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      },
+      users: users
+    });
+
+  } catch (error) {
+    console.error('Error en /api/users/paginated:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// ...existing code...
+
+
+
+
 app.post('/api/ced', async(req, res) => {
   try{
     const { id } = req.body; // Obtener ID del body en lugar de params
