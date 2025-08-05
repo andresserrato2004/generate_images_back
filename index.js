@@ -26,6 +26,139 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ...existing code...
 
+// Endpoint para obtener estudiantes por carrera específica
+app.get('/api/users/career/:career', async (req, res) => {
+  try {
+    const { career } = req.params;
+    
+    // Buscar usuarios por carrera (búsqueda exacta, no case sensitive)
+    const users = await prisma.user.findMany({
+      where: {
+        career: {
+          contains: career,
+          mode: 'insensitive' // Búsqueda sin distinguir mayúsculas/minúsculas
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        gender: true,
+        career: true,
+        createdAt: true,
+        // image: false ← Sin imágenes para mejor rendimiento
+      },
+      orderBy: {
+        name: 'asc' // Ordenar alfabéticamente por nombre
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      career: career,
+      count: users.length,
+      users: users
+    });
+
+  } catch (error) {
+    console.error('Error en /api/users/career:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Endpoint alternativo con query parameter
+app.get('/api/users/filter', async (req, res) => {
+  try {
+    const { career, gender, limit } = req.query;
+    
+    // Construir filtros dinámicamente
+    const whereClause = {};
+    
+    if (career) {
+      whereClause.career = {
+        contains: career,
+        mode: 'insensitive'
+      };
+    }
+    
+    if (gender) {
+      whereClause.gender = gender.toLowerCase();
+    }
+
+    const queryOptions = {
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        gender: true,
+        career: true,
+        createdAt: true,
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    };
+
+    // Agregar límite si se especifica
+    if (limit) {
+      queryOptions.take = parseInt(limit);
+    }
+
+    const users = await prisma.user.findMany(queryOptions);
+
+    res.status(200).json({
+      success: true,
+      filters: {
+        career: career || 'all',
+        gender: gender || 'all',
+        limit: limit || 'no limit'
+      },
+      count: users.length,
+      users: users
+    });
+
+  } catch (error) {
+    console.error('Error en /api/users/filter:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Endpoint para obtener lista de todas las carreras disponibles
+app.get('/api/careers', async (req, res) => {
+  try {
+    const careers = await prisma.user.findMany({
+      select: {
+        career: true
+      },
+      distinct: ['career'],
+      orderBy: {
+        career: 'asc'
+      }
+    });
+
+    const careerList = careers.map(user => user.career).filter(Boolean);
+
+    res.status(200).json({
+      success: true,
+      count: careerList.length,
+      careers: careerList
+    });
+
+  } catch (error) {
+    console.error('Error en /api/careers:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+
 // Endpoint para obtener todos los usuarios
 app.get('/api/users', async (req, res) => {
   try {
@@ -81,7 +214,6 @@ app.get('/api/users/summary', async (req, res) => {
   }
 });
 
-// Endpoint con paginación (recomendado para muchos usuarios)
 app.get('/api/users/paginated', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -128,9 +260,6 @@ app.get('/api/users/paginated', async (req, res) => {
     });
   }
 });
-
-// ...existing code...
-
 
 
 
